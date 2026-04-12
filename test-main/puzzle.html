@@ -6,24 +6,71 @@
     <title>数字华容道 (3x3)</title>
     <style>
         :root {
-            --bg-color: #f0f2f5;
-            --primary-color: #3498db;
-            --tile-color: #ffffff;
-            --text-color: #333333;
-            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            /* 定义一套更有质感的配色 */
+            --bg-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            --tile-color: rgba(255, 255, 255, 0.9);
+            --primary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
         }
 
         body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            /* 使用渐变背景 */
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: white;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
             margin: 0;
-            user-select: none; /* 防止触摸时选择文本 */
+            overflow: hidden;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-weight: 300;
+            letter-spacing: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* 优化容器，增加毛玻璃效果 */
+        #game-container {
+            width: 340px;
+            height: 340px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px); /* 毛玻璃核心代码 */
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 15px;
+            padding: 10px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 10px;
+            box-shadow: var(--shadow);
+        }
+
+        /* 优化方块外观 */
+        .tile {
+            background: var(--tile-color);
+            color: var(--primary-color);
+            border-radius: 10px;
+            font-size: 32px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            /* 更加圆润的过渡 */
+            transition: transform 0.1s, background 0.3s, top 0.2s, left 0.2s;
+        }
+
+        /* 按钮美化 */
+        button {
+            background: #e74c3c;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: bold;
+            letter-spacing: 1px;
         }
 
         h1 {
