@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>数字华容道 (3x3)</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --primary-color: #3498db;
+            --tile-color: #ffffff;
+            --text-color: #333333;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            user-select: none; /* 防止触摸时选择文本 */
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        #controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        #move-count {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #game-container {
+            width: 320px;
+            height: 320px;
+            background-color: #bdc3c7;
+            border-radius: 8px;
+            padding: 5px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 5px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            position: relative;
+        }
+
+        .tile {
+            background-color: var(--tile-color);
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: all 0.2s ease-out; /* 移动动画 */
+            position: absolute;
+            width: calc(33.33% - 6.66px); /* 减去 gap 的影响 */
+            height: calc(33.33% - 6.66px);
+        }
+
+        .tile:hover:not(.empty) {
+            background-color: #eaf2f8;
+        }
+
+        .tile.empty {
+            background-color: transparent;
+            box-shadow: none;
+            cursor: default;
+            visibility: hidden; /* 隐藏空白块 */
+        }
+
+        /* 胜利样式 */
+        #game-container.won .tile:not(.empty) {
+            background-color: #2ecc71;
+            color: white;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>数字华容道</h1>
+
+    <div id="controls">
+        <button onclick="scrambleBoard()">洗牌 / 重新开始</button>
+        <div id="move-count">步数: 0</div>
+    </div>
+
+    <div id="game-container">
+        </div>
+
+    <script>
+        const size = 3; // 3x3 
+        let tilesCount = size * size;
+        let board = [];
+        let emptyPos = tilesCount - 1; // 默认最后一个是空白
+        let moves = 0;
+        let isGameRunning = false;
+
+        const container = document.getElementById('game-container');
+        const moveCountDisplay = document.getElementById('move-count');
+
+        // 初始化：生成已排好的数字块
+        function initBoard() {
+            board = [];
+            for (let i = 1; i < tilesCount; i++) {
+                board.push(i);
+            }
+            board.push(0); // 0 代表空白块
+            emptyPos = tilesCount - 1;
+            renderBoard();
+        }
+
+        // 渲染界面
+        function renderBoard() {
+            container.innerHTML = ''; // 清空
+            for (let i = 0; i < tilesCount; i++) {
+                const tileVal = board[i];
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                
+                if (tileVal === 0) {
+                    tile.classList.add('empty');
+                } else {
+                    tile.textContent = tileVal;
+                    // 计算绝对定位坐标
+                    const row = Math.floor(i / size);
+                    const col = i % size;
+                    tile.style.top = `${row * 100 + 5}px`; // 加上 gap 和 padding
+                    tile.style.left = `${col * 100 + 5}px`;
+                    
+                    // 点击事件
+                    tile.addEventListener('click', () => moveTile(i));
+                    // 触摸事件（增加手机响应速度）
+                    tile.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        moveTile(i);
+                    }, {passive: false});
+                }
+                container.appendChild(tile);
+            }
+            moveCountDisplay.textContent = `步数: ${moves}`;
+        }
+
+        // 移动数字块
+        function moveTile(index) {
+            if (!isGameRunning) return;
+
+            // 检查点击的块是否与空白块相邻
+            const row = Math.floor(index / size);
+            const col = index % size;
+            const emptyRow = Math.floor(emptyPos / size);
+            const emptyCol = emptyPos % size;
+
+            const isAdjacent = (Math.abs(row - emptyRow) + Math.abs(col - emptyCol)) === 1;
+
+            if (isAdjacent) {
+                // 交换数据
+                [board[index], board[emptyPos]] = [board[emptyPos], board[index]];
+                emptyPos = index; // 更新空白块位置
+                moves++;
+                renderBoard();
+                checkWin();
+            }
+        }
+
+        // 洗牌 (通过大量的有效随机移动来确保有解)
+        function scrambleBoard() {
+            initBoard(); // 先恢复原状
+            moves = 0;
+            container.classList.remove('won');
+            
+            // 进行 200 次随机有效移动
+            for (let i = 0; i < 200; i++) {
+                const validMoves = getValidMoves();
+                const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+                
+                // 交换数据
+                [board[randomMove], board[emptyPos]] = [board[emptyPos], board[randomMove]];
+                emptyPos = randomMove;
+            }
+            
+            isGameRunning = true;
+            renderBoard();
+        }
+
+        // 获取当前空白块可以移动到的相邻位置下标
+        function getValidMoves() {
+            const emptyRow = Math.floor(emptyPos / size);
+            const emptyCol = emptyPos % size;
+            const moves = [];
+
+            if (emptyRow > 0) moves.push(emptyPos - size); // 上
+            if (emptyRow < size - 1) moves.push(emptyPos + size); // 下
+            if (emptyCol > 0) moves.push(emptyPos - 1); // 左
+            if (emptyCol < size - 1) moves.push(emptyPos + 1); // 右
+
+            return moves;
+        }
+
+        // 检查是否胜利
+        function checkWin() {
+            let win = true;
+            // 检查前 n-1 个是否按顺序
+            for (let i = 0; i < tilesCount - 1; i++) {
+                if (board[i] !== i + 1) {
+                    win = false;
+                    break;
+                }
+            }
+            
+            if (win) {
+                isGameRunning = false;
+                container.classList.add('won');
+                // 延时提示，让用户看到最后一步的动画
+                setTimeout(() => {
+                    alert(`🎉 恭喜！你用了 ${moves} 步完成了挑战！`);
+                }, 300);
+            }
+        }
+
+        // 页面加载时自动开始一次
+        window.onload = scrambleBoard;
+
+    </script>
+</body>
+</html>
